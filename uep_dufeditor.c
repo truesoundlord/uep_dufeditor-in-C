@@ -29,6 +29,7 @@
 #include <uep_wide.h>
 #include <uepthreads.h>
 #include <linkedlist.h>
+#include <sys/stat.h>
 
 // **************************************************************************** 
 // Déclaration des constantes symboliques
@@ -45,6 +46,11 @@ LinkedList		*Parametres;
 FILE					*logFile;
 
 char					*logMessage;
+char					*localWorkingDir=NULL;
+char					*localTempDir=NULL;
+
+unsigned short	us_Width;
+unsigned short	us_Height;
 
 // ****************************************************************************
 // SECTION : prototypes des fonctions en test pour CE code source
@@ -97,14 +103,8 @@ int main(int argc,char** argv)
 	// uep_dufeditor -t <temporary folder> -f <filename1> <filename2>
 	
 	unsigned params=VerifyParameters(Parametres);
-	if(params)
+	if(!params)
 	{
-		wprintf(L"Parameters verified:.. OK :}\n");
-						
-	}
-	else
-	{
-		wprintf(L"Parameters verified... KO :{\n");
 		wprintf(L"USAGE:\n");
 		wprintf(L"\tuep_dufeditor -w <working directory> -t <temp directory> -f <filename1> <filename2>\n");
 		wprintf(L"\tuep_dufeditor -w <working directory> -f <filename1> <filename2>\n");
@@ -113,29 +113,38 @@ int main(int argc,char** argv)
 	
 	// Computing params
 	
-	wprintf(L"[D] %4b\n",params);
 	if ((params & TEMP) == TEMP)
 	{
-		wprintf(L"temp set... (");
 		int tempID=lc_FindByValue(Parametres,"-t",compareme);
 		if(tempID>1000)
 		{
 			lc_Datas *tempdir=lc_search(Parametres,tempID-1);				// risqué mais pas le choix
-			wprintf(L"%s)\n",(char*)tempdir->value);
+			localWorkingDir=(char*)tempdir->value;
 		}
 	}
 	if ((params & WORKING) == WORKING)
 	{
-		wprintf(L"working set... (");
 		int workingID=lc_FindByValue(Parametres,"-w",compareme);
 		if(workingID>1000)
 		{
 			lc_Datas *workingdir=lc_search(Parametres,workingID-1);				// risqué mais pas le choix
-			wprintf(L"%s)\n",(char*)workingdir->value);
+			localTempDir=(char*)workingdir->value;
 		}
 	}
 	
-	wprintf(L"\n");
+	GetConsoleDimensions(&us_Width,&us_Height);
+	FenetrePrincipale=DrawTitledBoxWithRGB(1,1,1,us_Width,(struct s_RGB){0,170,0,true},"{Current directory}",(struct s_RGB){0,255,127,false},COLORED_SEPARATE);
+	
+	if(localWorkingDir!=NULL)
+	{
+		if(chdir(localWorkingDir)==-1)
+		{
+			mkdir(localWorkingDir,S_IRWXU);
+		}
+		DisplayXY(localWorkingDir,FenetrePrincipale.FirstPrintableX,FenetrePrincipale.FirstPrintableY);
+	}
+		
+	SetCursor(FenetrePrincipale.posX=0,FenetrePrincipale.Last);
 	return(EXIT_SUCCESS);
 }
 
@@ -152,28 +161,22 @@ unsigned short VerifyParameters(LinkedList *param)
 	{
 		char *pUnwrap = (char*)pExtracted->value;
 		
-		// wprintf(L"[DEBUG] %s\n",pUnwrap);
-		
 		if(strcmp("-w",pUnwrap)==0)
 		{
 			us_NbVerified|=WORKING;
-			wprintf(L"Working directory...\n");
 		}
 		if(strcmp("-t",pUnwrap)==0)
 		{
 			us_NbVerified|=TEMP;
-			wprintf(L"Temp directory...\n");
 		}
 		if(strcmp("-f",pUnwrap)==0)
 		{
 			us_NbVerified|=FILES;
 			pExtracted=pExtracted->pNext;											// skip -f
 			
-			wprintf(L"Files:\n");
 			while(pExtracted != NULL)
 			{
 				pUnwrap=(char*)pExtracted->value;
-				wprintf(L"\t%s\n",pUnwrap);
 				pExtracted=pExtracted->pNext;
 			}
 			return us_NbVerified;
@@ -188,9 +191,6 @@ bool compareme(void *candidat,void *target)
 {
 	char *strTarget=(char*)target;
 	char *strCandidat=(char*)candidat;
-	
-	//wprintf(L"[D] cherche -> %s\n",strTarget);
-	//wprintf(L"[D] courant -> %s\n",strCandidat);
 	
 	if(strcmp(strCandidat,strTarget)==0) return true;
 	return false;
