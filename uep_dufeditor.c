@@ -109,6 +109,7 @@ int main(int argc,char** argv)
 		wprintf(L"\tuep_dufeditor -w <working directory> -t <temp directory> -f <filename1> <filename2>\n");
 		wprintf(L"\tuep_dufeditor -w <working directory> -f <filename1> <filename2>\n");
 		wprintf(L"\tuep_dufeditor -t <temp directory> -f <filename1> <filename2>\n");
+		exit(EXIT_FAILURE);
 	}
 	
 	// Computing params
@@ -133,16 +134,29 @@ int main(int argc,char** argv)
 	}
 	
 	GetConsoleDimensions(&us_Width,&us_Height);
-	FenetrePrincipale=DrawTitledBoxWithRGB(1,1,1,us_Width,(struct s_RGB){0,170,0,true},"{Current directory}",(struct s_RGB){0,255,127,false},COLORED_SEPARATE);
+	FenetrePrincipale=DrawTitledBoxWithRGB(1,1,2,us_Width,(struct s_RGB){0,170,0,true},"{Current directory}",(struct s_RGB){0,255,127,false},COLORED_SEPARATE);
 	
 	if(localWorkingDir!=NULL)
 	{
 		if(chdir(localWorkingDir)==-1)
 		{
 			mkdir(localWorkingDir,S_IRWXU);
+			chdir(localWorkingDir);
 		}
-		DisplayXY(localWorkingDir,FenetrePrincipale.FirstPrintableX,FenetrePrincipale.FirstPrintableY);
+		//DisplayXY(localWorkingDir,FenetrePrincipale.FirstPrintableX,FenetrePrincipale.FirstPrintableY);
+		AddToMessageBoxEx(localWorkingDir,&FenetrePrincipale);
 	}
+	
+	if(localTempDir!=NULL)
+	{
+		if(chdir(localTempDir)==-1)
+		{
+			mkdir(localTempDir,S_IRWXU);
+		}
+		AddToMessageBoxEx(localTempDir,&FenetrePrincipale);
+	}
+	
+	
 		
 	SetCursor(FenetrePrincipale.posX=0,FenetrePrincipale.Last);
 	return(EXIT_SUCCESS);
